@@ -55,23 +55,23 @@ Node* parse(const std::vector<std::string> tokens) {
     Node* root_node = new Node;
     root_node->m_type = NODE_TYPE_INST;
 
-    if(tokens[0] == "ADD") {
+    if(tokens[0] == "ADD" || tokens[0] == "add") {
         root_node->instruction = INST_ADD;
     }
 
-    else if(tokens[0] == "SUB") {
+    else if(tokens[0] == "SUB" || tokens[0] == "sub") {
         root_node->instruction = INST_SUB;
     }
     
-    else if(tokens[0] == "MUL") {
+    else if(tokens[0] == "MUL" || tokens[0] == "mul") {
         root_node->instruction = INST_MUL;
     }
 
-    else if(tokens[0] == "DIV") {
+    else if(tokens[0] == "DIV" || tokens[0] == "div") {
         root_node->instruction = INST_DIV;
     }
 
-    else if (tokens[0] == "MOD") {
+    else if (tokens[0] == "MOD" || tokens[0] == "mod") {
         root_node->instruction = INST_MOD;
     }
 
