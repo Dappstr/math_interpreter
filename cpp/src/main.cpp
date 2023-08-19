@@ -23,6 +23,12 @@ struct Node {
         int value;
     };
     std::vector<Node*> m_children;
+
+    ~Node() {
+        for(auto child : m_children) {
+            delete child;
+        }
+    }
 };
 
 //Will bind an identifier to a value
@@ -254,11 +260,12 @@ int main() {
             if(root) {
                 int result = evaluate(root);
                 std::cout << "RESULT: " << result << "\n\n";
+                delete root;
             }
             else {
                 std::cout << "Unrecognized input or invalid command.\n";
             }
-    
+             
         }
     }
     return EXIT_SUCCESS;
