@@ -58,6 +58,19 @@ std::vector<std::string> tokenize(const std::string& str) {
     return tokens;
 }
 
+int find_id(const std::string& id) {
+    int i = 0;
+    for(auto _id : valid_ids) {
+        if(_id == id) {
+            return i;
+        }
+        else {
+            ++i;
+        }
+    }
+    return -1;
+}
+
 //Parse instruction if instruction is found
 Node* parse_inst(std::vector<std::string> tokens) {
   
@@ -90,7 +103,13 @@ Node* parse_inst(std::vector<std::string> tokens) {
         left->value = std::stoi(tokens[1]);
     }
     catch(...) {
-        std::cout << "Unexpected input (value x)\n";
+        int indx = find_id(tokens[1]);
+        if(indx != -1) {
+           left->value = bindings.at(indx)->value; 
+        }
+        else {
+            std::cout << "Unexpected input (value x)\n";
+        }
     }
 
     Node* right = new Node;
@@ -99,7 +118,13 @@ Node* parse_inst(std::vector<std::string> tokens) {
         right->value = std::stoi(tokens[2]);
     }
     catch(...) {
-        std::cout << "Unexpected input (value y)\n";
+        int indx = find_id(tokens[2]);
+        if(indx != -1) {
+            right->value = bindings.at(indx)->value;
+        }
+        else {
+            std::cout << "Unexpected input (value y)\n";
+        }
     }
     root_node->m_children.push_back(left);
     root_node->m_children.push_back(right);
