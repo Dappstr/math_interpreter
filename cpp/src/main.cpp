@@ -4,7 +4,8 @@
 enum NODE_TYPE {
     NODE_TYPE_INST = 0, // Instruction such as ADD, SUB, MUL, DIV, MOD
     NODE_TYPE_NUM, //Node is a numerical literal which will come after an instruction
-    NODE_TYPE_VAR // Node will be a variable declaration
+    NODE_TYPE_VAR, // Node will be a variable declaration
+    NODE_TYPE_FUN //Node will be a function call (such as "print")
 };
 
 enum INSTRUCTION {
@@ -21,8 +22,7 @@ struct Node {
         INSTRUCTION instruction;
         int value;
     };
-    Node* m_left = nullptr;
-    Node* m_right = nullptr;
+    std::vector<Node*> m_children;
 };
 
 //Will bind an identifier to a value
@@ -30,10 +30,11 @@ struct Node {
 //'a' will be the identifer, 5 is the value
 struct Binding {
     std::string id;
-    Node value;
+    int value;
 };
 
 std::vector<std::string> valid_ids;
+std::vector<Binding*> bindings;
 
 std::vector<std::string> tokenize(const std::string& str) {
     std::vector<std::string> tokens;
@@ -83,49 +84,78 @@ Node* parse_inst(std::vector<std::string> tokens) {
         root_node->instruction = INST_MOD;
     }    
 
-    root_node->m_left = new Node;
-    root_node->m_left->m_type = NODE_TYPE_NUM;
+    Node* left = new Node;
+    left->m_type = NODE_TYPE_NUM;
     try {
-        root_node->m_left->value = std::stoi(tokens[1]);
+        left->value = std::stoi(tokens[1]);
     }
     catch(...) {
         std::cout << "Unexpected input (value x)\n";
     }
 
-    root_node->m_right = new Node;
-    root_node->m_right->m_type = NODE_TYPE_NUM;
+    Node* right = new Node;
+    right->m_type = NODE_TYPE_NUM;
     try {
-        root_node->m_right->value = std::stoi(tokens[2]);
+        right->value = std::stoi(tokens[2]);
     }
     catch(...) {
         std::cout << "Unexpected input (value y)\n";
     }
+    root_node->m_children.push_back(left);
+    root_node->m_children.push_back(right);
     return root_node;
 }
 
 //Parse variable if variable declaration is found
-void parse_var(std::vector<std::string> tokens) {
+Node* parse_var(std::vector<std::string> tokens) {
+    Node* root_node = new Node;
+    root_node->m_type = NODE_TYPE_VAR;
+
     Binding* bind = new Binding;
     if(tokens[1] == "=") {
         std::string id = tokens[0];
+        bind->id = id;
         valid_ids.push_back(id);
         bind->id = id;
         try {
             int value = std::stoi(tokens[2]);
-            bind->value.value = value;
+            bind->value = value;
+            bindings.push_back(bind);
         }
         catch(...) {
             std::cout << "Unexpected value during variable declaration\n";
         }
     }
+    return root_node;
+}
+
+Node* parse_fun(std::vector<std::string> tokens) {
+    Node* root_node = new Node;
+    root_node->m_type = NODE_TYPE_FUN;
+
+    std::string id = tokens.at(1);
+    int indx = 0;
+    for(auto ids : valid_ids) {                    
+        if(ids == id)  {
+            std::cout << bindings.at(indx)->value << '\n';
+            return root_node;
+        }
+        indx++;
+    }
+    std::cout << "Invalid id\n";
+    return root_node;
 }
 
 Node* parse(const std::vector<std::string> tokens) {
     if(tokens.size() < 3) {
-        std::cout << "Cannot parse less than 3 tokens\n";
+        if(tokens.at(0) == "print") {
+            parse_fun(tokens);
+        }  
+    } 
+    else if(tokens.size() > 3) {
+        std::cout << "Cannot parse more than 3 tokens\n";
         return nullptr;
     }
-
     Node* root_node = new Node;
 
     if(tokens[0] == "ADD" || tokens[0] == "SUB" || tokens[0] == "MUL" || tokens[0] == "DIV" || tokens[0] == "MOD") {
@@ -133,7 +163,8 @@ Node* parse(const std::vector<std::string> tokens) {
     }
 
     else {
-        parse_var(tokens);
+        root_node = parse_var(tokens);
+         
     }
     
     return root_node;
@@ -144,8 +175,8 @@ int evaluate(Node* node) {
         return node->value;
     }
     else if(node->m_type == NODE_TYPE_INST) {
-        int left_val = evaluate(node->m_left);
-        int right_val = evaluate(node->m_right);
+        int left_val = evaluate(node->m_children.at(0));
+        int right_val = evaluate(node->m_children.at(1));
 
         switch(node->instruction) {
             case INST_ADD:
@@ -159,6 +190,10 @@ int evaluate(Node* node) {
             case INST_MOD:
                 return left_val % right_val;
         }
+    }
+
+    else if(node->m_type == NODE_TYPE_VAR) {
+        
     }
 
     return 0;
@@ -193,7 +228,7 @@ int main() {
             Node* root = parse(tokens);
             if(root) {
                 int result = evaluate(root);
-                std::cout << "RESULT: " << result << '\n';
+                std::cout << "RESULT: " << result << "\n\n";
             }
             else {
                 std::cout << "Unrecognized input or invalid command.\n";
