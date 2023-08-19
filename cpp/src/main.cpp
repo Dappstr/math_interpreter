@@ -3,7 +3,8 @@
 //Representing what kind of token 
 enum NODE_TYPE {
     NODE_TYPE_INST = 0, // Instruction such as ADD, SUB, MUL, DIV, MOD
-    NODE_TYPE_NUM //Token is a numerical literal which will come after an instruction
+    NODE_TYPE_NUM, //Node is a numerical literal which will come after an instruction
+    NODE_TYPE_VAR // Node will be a variable declaration
 };
 
 enum INSTRUCTION {
@@ -23,6 +24,16 @@ struct Node {
     Node* m_left = nullptr;
     Node* m_right = nullptr;
 };
+
+//Will bind an identifier to a value
+//Such as a = 5
+//'a' will be the identifer, 5 is the value
+struct Binding {
+    std::string id;
+    Node value;
+};
+
+std::vector<std::string> valid_ids;
 
 std::vector<std::string> tokenize(const std::string& str) {
     std::vector<std::string> tokens;
@@ -46,6 +57,69 @@ std::vector<std::string> tokenize(const std::string& str) {
     return tokens;
 }
 
+//Parse instruction if instruction is found
+Node* parse_inst(std::vector<std::string> tokens) {
+  
+    Node* root_node = new Node;
+    root_node->m_type = NODE_TYPE_INST;  
+    
+    if(tokens[0] == "ADD")  {
+        root_node->instruction = INST_ADD;
+    }
+
+    else if(tokens[0] == "SUB") {
+        root_node->instruction = INST_SUB;
+    }
+    
+    else if(tokens[0] == "MUL") {
+        root_node->instruction = INST_MUL;
+    }
+
+    else if(tokens[0] == "DIV") {
+        root_node->instruction = INST_DIV;
+    }
+
+    else if (tokens[0] == "MOD") {
+        root_node->instruction = INST_MOD;
+    }    
+
+    root_node->m_left = new Node;
+    root_node->m_left->m_type = NODE_TYPE_NUM;
+    try {
+        root_node->m_left->value = std::stoi(tokens[1]);
+    }
+    catch(...) {
+        std::cout << "Unexpected input (value x)\n";
+    }
+
+    root_node->m_right = new Node;
+    root_node->m_right->m_type = NODE_TYPE_NUM;
+    try {
+        root_node->m_right->value = std::stoi(tokens[2]);
+    }
+    catch(...) {
+        std::cout << "Unexpected input (value y)\n";
+    }
+    return root_node;
+}
+
+//Parse variable if variable declaration is found
+void parse_var(std::vector<std::string> tokens) {
+    Binding* bind = new Binding;
+    if(tokens[1] == "=") {
+        std::string id = tokens[0];
+        valid_ids.push_back(id);
+        bind->id = id;
+        try {
+            int value = std::stoi(tokens[2]);
+            bind->value.value = value;
+        }
+        catch(...) {
+            std::cout << "Unexpected value during variable declaration\n";
+        }
+    }
+}
+
 Node* parse(const std::vector<std::string> tokens) {
     if(tokens.size() < 3) {
         std::cout << "Cannot parse less than 3 tokens\n";
@@ -53,36 +127,15 @@ Node* parse(const std::vector<std::string> tokens) {
     }
 
     Node* root_node = new Node;
-    root_node->m_type = NODE_TYPE_INST;
 
-    if(tokens[0] == "ADD" || tokens[0] == "add") {
-        root_node->instruction = INST_ADD;
+    if(tokens[0] == "ADD" || tokens[0] == "SUB" || tokens[0] == "MUL" || tokens[0] == "DIV" || tokens[0] == "MOD") {
+       root_node = parse_inst(tokens);
     }
 
-    else if(tokens[0] == "SUB" || tokens[0] == "sub") {
-        root_node->instruction = INST_SUB;
+    else {
+        parse_var(tokens);
     }
     
-    else if(tokens[0] == "MUL" || tokens[0] == "mul") {
-        root_node->instruction = INST_MUL;
-    }
-
-    else if(tokens[0] == "DIV" || tokens[0] == "div") {
-        root_node->instruction = INST_DIV;
-    }
-
-    else if (tokens[0] == "MOD" || tokens[0] == "mod") {
-        root_node->instruction = INST_MOD;
-    }
-
-    root_node->m_left = new Node;
-    root_node->m_left->m_type = NODE_TYPE_NUM;
-    root_node->m_left->value = std::stoi(tokens[1]);
-
-    root_node->m_right = new Node;
-    root_node->m_right->m_type = NODE_TYPE_NUM;
-    root_node->m_right->value = std::stoi(tokens[2]);
-
     return root_node;
 }
 
