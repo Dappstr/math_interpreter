@@ -84,8 +84,8 @@ int find_id(const std::string& id) {
 Node* parse_inst(std::vector<std::string> tokens) {
   
     Node* root_node = new Node;
-    root_node->m_type = NODE_TYPE_INST;  
-    
+    root_node->m_type = NODE_TYPE_INST;
+
     if(tokens[0] == "ADD")  {
         root_node->instruction = INST_ADD;
     }
@@ -241,12 +241,14 @@ Node* parse(const std::vector<std::string> tokens) {
         if(var[0] == '=') {
             return parse_var(tokens);
         }
+        else if(command == "ADD" || command == "SUB" || command == "MUL" || command == "DIV" || command == "MOD") {
+            return parse_inst(tokens);
+        } 
+
         else {
             return parse_expr(tokens);
         }
-    }
-    else if(command == "ADD" || command == "SUB" || command == "MUL" || command == "DIV" || command == "MOD") {
-        return parse_inst(tokens);
+    
     }
     else {
         std::cout << "Could not parse tokens\n";
