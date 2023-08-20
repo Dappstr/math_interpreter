@@ -1,11 +1,14 @@
 #include <iostream>
+#include <cctype>
+#include <string>
 
 //Representing what kind of token 
 enum NODE_TYPE {
     NODE_TYPE_INST = 0, // Instruction such as ADD, SUB, MUL, DIV, MOD
     NODE_TYPE_NUM, //Node is a numerical literal which will come after an instruction
     NODE_TYPE_VAR, // Node will be a variable declaration
-    NODE_TYPE_FUN //Node will be a function call (such as "print")
+    NODE_TYPE_FUN, //Node will be a function call (such as "print")
+    NODE_TYPE_EXP //Node will be an expression (such as 2 + 3)
 };
 
 enum INSTRUCTION {
@@ -164,41 +167,91 @@ Node* parse_fun(std::vector<std::string> tokens) {
     Node* root_node = new Node;
     root_node->m_type = NODE_TYPE_FUN;
 
-    std::string id = tokens.at(1);
-    int indx = 0;
-    for(auto ids : valid_ids) {                    
-        if(ids == id)  {
-            std::cout << bindings.at(indx)->value << '\n';
-            return root_node;
-        }
-        indx++;
+    if(tokens.size() < 2) {
+        std::cout << "Invalid function call\n";
+        return root_node;
     }
-    std::cout << "Invalid id\n";
+
+    std::string id = tokens.at(1);
+    int indx = find_id(id);
+    if(indx == -1) {
+        std::cout << "Invalid id\n";
+    }
+    else {
+        std::cout << bindings.at(indx)->value << '\n';
+    }
+    return root_node;
+}
+
+Node* parse_expr(std::vector<std::string> tokens) {
+    Node* root_node = new Node;
+    root_node->m_type = NODE_TYPE_EXP;
+
+    int x = stoi(tokens[0]);
+    int y = stoi(tokens[2]);
+    char op = tokens[1].at(0);
+
+    Node* left = new Node;
+    left->m_type = NODE_TYPE_NUM;
+    left->value = x;
+
+    Node* right = new Node;
+    right->m_type = NODE_TYPE_NUM;
+    right->value = y;
+
+    if(op == '+') {
+        root_node->instruction = INST_ADD;
+        root_node->m_children.push_back(left);
+        root_node->m_children.push_back(right);
+    }
+    else if(op == '-') {
+        root_node->instruction = INST_SUB;
+        root_node->m_children.push_back(left);
+        root_node->m_children.push_back(right);
+    }
+    else if(op == '*') {
+        root_node->instruction = INST_MUL;
+        root_node->m_children.push_back(left);
+        root_node->m_children.push_back(right);
+    }
+    else if(op == '/') {
+        root_node->instruction = INST_DIV;
+        root_node->m_children.push_back(left);
+        root_node->m_children.push_back(right);
+    }
+    else if(op == '%') {
+        root_node->instruction = INST_MOD;
+        root_node->m_children.push_back(left);
+        root_node->m_children.push_back(right);
+    }
+    else {
+        std::cout << "Unknown expression type\n\n";
+    }
+
     return root_node;
 }
 
 Node* parse(const std::vector<std::string> tokens) {
-    if(tokens.size() < 3) {
-        if(tokens.at(0) == "print") {
-            parse_fun(tokens);
-        }  
-    } 
-    else if(tokens.size() > 3) {
-        std::cout << "Cannot parse more than 3 tokens\n";
+    std::string command = tokens.at(0);
+    if(command == "print") {
+        return parse_fun(tokens);
+    }
+    else if(tokens.size() == 3) {
+        std::string var = tokens.at(1);
+        if(var[0] == '=') {
+            return parse_var(tokens);
+        }
+        else {
+            return parse_expr(tokens);
+        }
+    }
+    else if(command == "ADD" || command == "SUB" || command == "MUL" || command == "DIV" || command == "MOD") {
+        return parse_inst(tokens);
+    }
+    else {
+        std::cout << "Could not parse tokens\n";
         return nullptr;
     }
-    Node* root_node = new Node;
-
-    if(tokens[0] == "ADD" || tokens[0] == "SUB" || tokens[0] == "MUL" || tokens[0] == "DIV" || tokens[0] == "MOD") {
-       root_node = parse_inst(tokens);
-    }
-
-    else {
-        root_node = parse_var(tokens);
-         
-    }
-    
-    return root_node;
 }
 
 int evaluate(Node* node) {
@@ -223,8 +276,21 @@ int evaluate(Node* node) {
         }
     }
 
-    else if(node->m_type == NODE_TYPE_VAR) {
-        
+    else if(node->m_type == NODE_TYPE_EXP) {
+        int left_val = evaluate( node->m_children.at(0)); 
+        int right_val = evaluate(node->m_children.at(1)); 
+        switch(node->instruction) {
+            case INST_ADD:
+                return left_val + right_val;       
+            case INST_SUB:
+                return left_val - right_val;
+            case INST_MUL:
+                return left_val * right_val;
+            case INST_DIV:
+                return left_val / right_val;
+            case INST_MOD:
+                return left_val % right_val;
+        }
     }
 
     return 0;
@@ -258,8 +324,10 @@ int main() {
             std::vector<std::string> tokens = tokenize(input);
             Node* root = parse(tokens);
             if(root) {
-                int result = evaluate(root);
-                std::cout << "RESULT: " << result << "\n\n";
+                if(root->m_type != NODE_TYPE_FUN) {
+                    int result = evaluate(root);
+                    std::cout << "RESULT: " << result << "\n\n";
+                }
                 delete root;
             }
             else {
